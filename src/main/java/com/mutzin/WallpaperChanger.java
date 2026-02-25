@@ -8,35 +8,57 @@ import java.nio.file.StandardCopyOption;
 
 public class WallpaperChanger {
 
-    public static void change(String imageUrl) {
+    public static boolean change(String imageUrl) {
         try {
-            Path savePath = Path.of(System.getProperty("user.home"), "wallpaper.jpg");
+            Path currentDir = Path.of("").toAbsolutePath();
+            System.out.println("실행 폴더: " + currentDir);
 
-            // img download
+            // create downloadImg directory
+            Path downloadDir = currentDir.resolve("downloadImg");
+            if (!Files.exists(downloadDir)) {
+                Files.createDirectories(downloadDir);
+            }
+
+            // change image name
+            Path savePath = downloadDir.resolve(
+                    "wallpaper_" + System.currentTimeMillis() + ".jpg"
+            );
+
+            // download image
             try (InputStream in = new URL(imageUrl).openStream()) {
                 Files.copy(in, savePath, StandardCopyOption.REPLACE_EXISTING);
             }
 
-            // apple script version 1
-//            String script = "tell application \"Finder\" to set desktop picture to POSIX file \""
-//                    + savePath.toAbsolutePath().toString()
-//                    + "\"";
+            Thread.sleep(500);
 
-            // apple script version 2
+            System.out.println("저장 완료: " + savePath);
+
+            // script for mac
             String script =
-                    "tell application \"System Events\"\n" +
-                            "set picture of every desktop to POSIX file \"" +
+                    "delay 0.5\n" +
+                            "tell application \"System Events\"\n" +
+                            "    repeat with d in desktops\n" +
+                            "        set picture of d to POSIX file \"" +
                             savePath.toAbsolutePath().toString() +
                             "\"\n" +
+                            "    end repeat\n" +
                             "end tell";
+
             ProcessBuilder pb = new ProcessBuilder("osascript", "-e", script);
             Process process = pb.start();
             process.waitFor();
 
-            System.out.println("🎉 macOS 배경화면 변경 완료");
+            String error = new String(process.getErrorStream().readAllBytes());
+            if (!error.isEmpty()) {
+                System.out.println("AppleScript Error: " + error);
+                return false;
+            }
+
+            return true;
 
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
     }
 }
