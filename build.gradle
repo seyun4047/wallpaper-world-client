@@ -1,0 +1,88 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'com.mutzin'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.java-websocket:Java-WebSocket:1.5.3'
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+application {
+    mainClass = 'com.mutzin.WPWClientUI'
+}
+
+def packageOutputDir = layout.projectDirectory.dir('dist').asFile
+def jpackageInputDir = layout.buildDirectory.dir('jpackage-input')
+
+tasks.register('prepareJpackageInput', Copy) {
+    dependsOn tasks.named('jar')
+    into jpackageInputDir
+    from(tasks.named('jar'))
+    from(configurations.runtimeClasspath)
+}
+
+tasks.register('jpackageAppImage', Exec) {
+    dependsOn tasks.named('prepareJpackageInput')
+
+    doFirst {
+        packageOutputDir.mkdirs()
+
+        def jarFileName = tasks.named('jar').get().archiveFileName.get()
+        def inputPath = jpackageInputDir.get().asFile.absolutePath
+
+        commandLine = [
+                'jpackage',
+                '--type', 'app-image',
+                '--name', 'WallpaperWorldClient',
+                '--input', inputPath,
+                '--main-jar', jarFileName,
+                '--main-class', application.mainClass.get(),
+                '--dest', packageOutputDir.absolutePath
+        ]
+
+        def iconFile = file('assets/macos/icon.icns')
+        if (iconFile.exists()) {
+            commandLine += ['--icon', iconFile.absolutePath]
+        }
+    }
+}
+
+tasks.register('jpackageInstaller', Exec) {
+    dependsOn tasks.named('prepareJpackageInput')
+
+    doFirst {
+        packageOutputDir.mkdirs()
+
+        def jarFileName = tasks.named('jar').get().archiveFileName.get()
+        def inputPath = jpackageInputDir.get().asFile.absolutePath
+
+        commandLine = [
+                'jpackage',
+                '--type', 'dmg',
+                '--name', 'WallpaperWorldClient',
+                '--input', inputPath,
+                '--main-jar', jarFileName,
+                '--main-class', application.mainClass.get(),
+                '--dest', packageOutputDir.absolutePath
+        ]
+
+        def iconFile = file('assets/macos/icon.icns')
+        if (iconFile.exists()) {
+            commandLine += ['--icon', iconFile.absolutePath]
+        }
+    }
+}

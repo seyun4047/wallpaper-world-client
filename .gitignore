@@ -1,0 +1,27 @@
+.gradle/
+build/
+dist/
+out/
+.kotlin/
+
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# OS
+.DS_Store
+
+# Packaging/runtime artifacts
+*.dmg
+*.app
+downloadImg/
+icon.icns.png
